@@ -1,0 +1,15 @@
+id = "marko"
+name = "Marko"
+version = "0.1.0"
+schema_version = 1
+authors = ["Saulo Vallory <me@saulo.engineer>"]
+description = "Marko language support for Zed"
+repository = "https://github.com/svallory/marko-zed"
+
+[grammars.marko]
+repository = "https://github.com/marko-js/tree-sitter"
+rev = "3b2b0b30be0673ff173e4e692b838ad3e574c45a"
+
+[language_servers.marko-language-server]
+name = "Marko Language Server"
+languages = ["Marko"]
