@@ -1,5 +1,5 @@
 {
-  "include": ["*.marko"],
+  "include": ["src/**/*", ".marko-run/routes.d.ts"],
   "compilerOptions": {
     "strict": true,
     "target": "ESNext",

@@ -2,6 +2,8 @@ target/
 grammars/
 node_modules/
 extension.wasm
+examples/dist/
+examples/.marko-run/
 .DS_Store
 .idea/
 .vscode/
