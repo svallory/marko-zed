@@ -218,7 +218,7 @@ jobs:
 
       - name: Set up pnpm
         if: steps.existing.outputs.exists == 'false'
-        uses: pnpm/setup@v4
+        uses: pnpm/action-setup@v4
         with:
           version: 11
 
