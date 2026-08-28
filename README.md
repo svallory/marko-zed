@@ -1,10 +1,27 @@
 # Marko for Zed
 
+[![CI](https://github.com/svallory/marko-zed/actions/workflows/ci.yml/badge.svg)](https://github.com/svallory/marko-zed/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 Zed language extension for [Marko](https://markojs.com) (`.marko` files):
 syntax highlighting (Tree-sitter), TypeScript/CSS injections, and LSP support
 via `@marko/language-server`.
 
-## Dev install
+## Features
+
+- Tree-sitter syntax highlighting for `.marko` files (tags, attribute tags,
+  `<let>`/`<const>`, control-flow tags, concise-mode text)
+- TypeScript and CSS injections inside script/style blocks
+- Full LSP support via `@marko/language-server`, auto-installed from npm
+- Automatic TypeScript default-lib patching so type diagnostics work even in
+  projects without `node_modules`
+
+## Installation
+
+**From the Zed extension registry:** coming soon (pending submission to
+[zed-industries/extensions](https://github.com/zed-industries/extensions)).
+
+**Dev install (today):**
 
 1. Open Zed's extensions page (`zed: extensions`).
 2. Click "Install Dev Extension" and select this directory.
@@ -48,3 +65,13 @@ the server, so they always match the compiler it runs.
 The Tree-sitter grammar and queries are sourced from
 [marko-js/tree-sitter](https://github.com/marko-js/tree-sitter), pinned to a
 commit in `extension.toml`.
+
+## Contributing
+
+Bug reports, feature requests, and PRs are welcome. See
+[CONTRIBUTING.md](CONTRIBUTING.md) for dev setup, the build/lint commands, and
+the PR process.
+
+## License
+
+[MIT](LICENSE)
