@@ -7,6 +7,8 @@ Zed language extension for [Marko](https://markojs.com) (`.marko` files):
 syntax highlighting (Tree-sitter), TypeScript/CSS injections, and LSP support
 via `@marko/language-server`.
 
+![Marko syntax highlighting in Zed](assets/screenshot.png)
+
 ## Features
 
 - Tree-sitter syntax highlighting for `.marko` files (tags, attribute tags,
