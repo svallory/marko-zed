@@ -1,0 +1,51 @@
+name: Bug Report
+description: Report a bug in the Marko Zed extension
+labels: ["bug"]
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: Describe the bug
+      description: Clear description of what happened
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      description: Minimal steps to reproduce the behavior, ideally with a `.marko` snippet
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: input
+    id: zed-version
+    attributes:
+      label: Zed version
+      description: Zed menu → About Zed
+    validations:
+      required: true
+  - type: input
+    id: extension-version
+    attributes:
+      label: Extension version
+      description: Version of the Marko extension (see extensions page)
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: OS
+      description: e.g. macOS 15.1, Ubuntu 24.04
+    validations:
+      required: true
+  - type: textarea
+    id: zed-log
+    attributes:
+      label: Zed.log excerpt
+      description: Relevant excerpt from Zed's log (Zed menu → Help → Open Log), especially anything mentioning "marko" or "language server"
+      render: shell

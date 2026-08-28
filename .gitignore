@@ -2,3 +2,6 @@ target/
 grammars/
 node_modules/
 extension.wasm
+.DS_Store
+.idea/
+.vscode/
