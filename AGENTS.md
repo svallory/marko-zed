@@ -35,3 +35,17 @@ build and verify against it before claiming the extension works.
 ## Remote
 
 `origin` is `git@github.com:svallory/marko-zed.git`, `main` pushed.
+
+## Zed dev-extension symlink (project-specific)
+
+The operator's Zed installs the dev extension from the stable symlink
+`<space-root>/dev-ext` (local-only, never committed), which points at one
+worktree — `worktrees/main` by default. To test in-progress work in Zed,
+that symlink is repointed (`ln -sfn worktrees/<ref> dev-ext`) and Zed
+reloads extensions; never install a dev extension from a worktree path
+directly (worktree removal leaves Zed with a dangling pointer).
+
+Only one worktree can own the symlink at a time. Dev agents must NOT
+repoint it on their own: ask the team lead, who controls which session
+holds it and repoints/restores it. (This is a rule of this repo's space,
+not part of the team-lead skill.)
