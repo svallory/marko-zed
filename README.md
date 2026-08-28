@@ -1,3 +1,6 @@
+> [!IMPORTANT]
+> Repo kept just for resume, use [the official extension](https://github.com/marko-js/zed) instead.
+
 # Marko for Zed
 
 [![CI](https://github.com/svallory/marko-zed/actions/workflows/ci.yml/badge.svg)](https://github.com/svallory/marko-zed/actions/workflows/ci.yml)
