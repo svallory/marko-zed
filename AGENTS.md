@@ -25,6 +25,13 @@ build and verify against it before claiming the extension works.
   should do "Install Dev Extension" + open `examples/hello.marko` to confirm
   highlighting/LSP end-to-end.
 
+## Language server
+
+- After installing `@marko/language-server`, the extension copies TypeScript's
+  `lib.*.d.ts` files into the server's `dist/` (see `copy_default_ts_libs` in
+  `src/lib.rs`) — without them, projects with no `node_modules` report bogus
+  missing-global-type errors. Keep that step in sync with any install changes.
+
 ## Remote
 
 `origin` is `git@github.com:svallory/marko-zed.git`, `main` pushed.

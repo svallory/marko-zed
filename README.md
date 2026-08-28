@@ -31,6 +31,18 @@ Node binary Zed provides (`zed::node_binary_path()`), passing `--stdio`
 explicitly — `vscode-languageserver`'s `createConnection()` throws without
 it.
 
+### TypeScript default libraries
+
+After installing the server, the extension copies TypeScript's default
+`lib.*.d.ts` files into the server's `dist/` directory. The server looks for
+them by resolving `typescript` from the *project's* tsconfig and falls back to
+its own bundle directory when that fails, and the npm-published server ships no
+libs there — so in a project without `node_modules` every global type
+(`Promise`, `Date`, `Symbol`) goes missing. The official VS Code extension
+copies the same files into its bundle at build time; this reproduces that step
+for the npm build. The libs come from whichever `typescript` npm installed for
+the server, so they always match the compiler it runs.
+
 ## Grammar
 
 The Tree-sitter grammar and queries are sourced from
