@@ -1,0 +1,27 @@
+// Minimal Marko component to smoke-test highlighting and the LSP.
+export interface Input {
+  name: string;
+}
+
+class {
+  onCreate(input: Input) {
+    this.name = input.name;
+  }
+}
+
+static function shout(text: string) {
+  return text.toUpperCase();
+}
+
+<div.greeting>
+  <h1>Hello, ${shout(input.name)}!</h1>
+  <!-- Attribute tag: passes an <icon-star> tag as the "star" attribute
+       (the value here) to the parent, per Marko's attribute-tags feature. -->
+  <@icon-star id="hi" />
+</div>
+
+<style>
+  .greeting {
+    color: teal;
+  }
+</style>
