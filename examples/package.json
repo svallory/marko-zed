@@ -1,0 +1,14 @@
+{
+  "name": "marko-zed-examples",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "marko-run dev",
+    "build": "marko-run build",
+    "preview": "marko-run preview"
+  },
+  "dependencies": {
+    "@marko/run": "latest",
+    "marko": "latest"
+  }
+}
