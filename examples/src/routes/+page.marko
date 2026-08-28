@@ -1,6 +1,6 @@
 // Marko 6 smoke-test component: exercises highlighting + LSP diagnostics.
 export interface Input {
-  name: string;
+  name?: string;
   items?: string[];
 }
 
@@ -17,7 +17,7 @@ static function shout(text: abobora) {
 p.tagline -- rendered ${new Date().getFullYear()}
 
 <let/count = 0>
-<const/greeting = `Hello, ${shout(input.name)}!`>
+<const/greeting = `Hello, ${shout(input.name ?? "world")}!`>
 
 <div.greeting>
   <h1>${greeting}</h1>
@@ -41,12 +41,13 @@ p.tagline -- rendered ${new Date().getFullYear()}
   <!-- Dynamic tag: renders as <span> or <strong> depending on state. -->
   <${count > 3 ? "strong" : "span"}>Count is ${count}</>
 
-  <!-- Attribute tag: only meaningful as a child of a custom tag, since it
-       becomes a property on that tag's `input` — `fancy-card` here is a
-       hypothetical custom tag (not implemented in this repo), just to show
-       the syntax somewhere it would actually compile against a real tag. -->
+  <!-- Attribute tag: <@icon> is only meaningful as a child of a custom
+       tag, since it becomes a property on that tag's `input.icon` —
+       `fancy-card` is a real custom tag discovered from src/tags/, so
+       this compiles for real and renders the icon name inside the card. -->
   <fancy-card title="Card">
-    <@icon-star id="hi" />
+    <@icon name="star"/>
+    <p>Try the <a href="/Saulo">params route</a> too.</p>
   </fancy-card>
 </div>
 

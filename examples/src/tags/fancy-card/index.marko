@@ -1,0 +1,23 @@
+export interface Input {
+  title: string;
+  icon?: Marko.AttrTag<{ name: string }>;
+  content: Marko.Body;
+}
+
+<div.fancy-card>
+  <if=input.icon>
+    <span.fancy-card-icon>[${input.icon.name}]</span>
+  </if>
+  <h2>${input.title}</h2>
+  <div.fancy-card-body>
+    <${input.content}/>
+  </div>
+</div>
+
+<style>
+  .fancy-card {
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    padding: 1rem;
+  }
+</style>
