@@ -18,53 +18,54 @@ via `@marko/language-server`.
 
 ## Installation
 
-**From the Zed extension registry:** coming soon (pending submission to
-[zed-industries/extensions](https://github.com/zed-industries/extensions)).
+**From the Zed extension registry:** coming soon — the submission is under
+review in [zed-industries/extensions#7393](https://github.com/zed-industries/extensions/pull/7393).
+Once merged, search for "Marko" in Zed's extensions page (`zed: extensions`)
+and install from there.
 
-**Dev install (today):**
+**Manual install (until then):**
 
-1. Open Zed's extensions page (`zed: extensions`).
-2. Click "Install Dev Extension" and select this directory.
-3. Open `examples/hello.marko` to verify highlighting and language server
-   startup. Expect:
-   - Syntax highlighting across the file's mix of `<let>`/`<const>`,
-     `<if>`/`<else-if>`/`<else>`, `<for>`, attribute tags, a dynamic tag,
-     concise-mode text, and the `<style>` block.
-   - A type diagnostic on the `static function shout(text: abobora)` line —
-     `abobora` is a deliberately invalid type, left in as an LSP smoke
-     test. Its presence in the editor (a red squiggle / Problems panel
-     entry) confirms the language server is attached and type-checking,
-     not just that the grammar highlights.
+1. Get the source: `git clone https://github.com/svallory/marko-zed.git`, or
+   download and unpack the source archive of the
+   [latest release](https://github.com/svallory/marko-zed/releases/latest).
+2. Make sure a Rust toolchain is installed ([rustup](https://rustup.rs)) —
+   Zed compiles dev extensions locally.
+3. In Zed, open the extensions page (`zed: extensions`), click
+   **Install Dev Extension**, and select the cloned/unpacked directory.
+4. Open any `.marko` file — highlighting is immediate; the language server
+   is downloaded from npm on first use, so diagnostics and completions
+   appear after a few seconds.
 
-`examples/tsconfig.json` exists so `@marko/language-server` picks up a
-project config for that directory — without one, it treats `.marko` files
-as plain JS and skips type diagnostics entirely (no `abobora` squiggle).
+> **Tip:** for type-aware diagnostics in your own project, have a
+> `tsconfig.json` whose `include` covers your `.marko` files — without one,
+> the language server treats them as plain JS and skips type checking.
 
-## Language server
+## How it works
 
-The extension installs `@marko/language-server` from npm on demand (via
-`zed::npm_install_package`), then runs its `bin.js` entry point through the
-Node binary Zed provides (`zed::node_binary_path()`), passing `--stdio`
-explicitly — `vscode-languageserver`'s `createConnection()` throws without
-it.
-
-### TypeScript default libraries
-
-After installing the server, the extension copies TypeScript's default
-`lib.*.d.ts` files into the server's `dist/` directory. The server looks for
-them by resolving `typescript` from the *project's* tsconfig and falls back to
-its own bundle directory when that fails, and the npm-published server ships no
-libs there — so in a project without `node_modules` every global type
-(`Promise`, `Date`, `Symbol`) goes missing. The official VS Code extension
-copies the same files into its bundle at build time; this reproduces that step
-for the npm build. The libs come from whichever `typescript` npm installed for
-the server, so they always match the compiler it runs.
+The extension installs `@marko/language-server` from npm on demand and runs
+it through the Node runtime Zed provides, over stdio. After installing, it
+copies TypeScript's default `lib.*.d.ts` files into the server's bundle —
+the npm build of the server ships without them and otherwise loses every
+global type (`Promise`, `Date`, ...) in projects with no `node_modules`;
+the official VS Code extension does the same copy at build time.
 
 ## Grammar
 
 The Tree-sitter grammar and queries are sourced from
 [marko-js/tree-sitter](https://github.com/marko-js/tree-sitter), pinned to a
 commit in `extension.toml`.
+
+## Troubleshooting
+
+- **No diagnostics / completions:** open the LSP log (`debug: open language
+  server logs`) and select "Marko Language Server". If it isn't listed,
+  check your Zed `settings.json` for a `language_servers` list — a value
+  like `["!eslint"]` without the `"..."` sentinel disables **all** servers
+  for languages without built-in defaults, Marko included. Use
+  `["!eslint", "..."]`.
+- **Startup details:** `~/Library/Logs/Zed/Zed.log` (macOS) shows the
+  server install and launch lines (`starting language server process ...
+  bin.js --stdio`).
 
 ## Contributing
 
