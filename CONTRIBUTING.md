@@ -31,7 +31,7 @@ editor, so verification is manual:
 
 1. Open Zed's extensions page (`zed: extensions`).
 2. Click "Install Dev Extension" and select this repo's root.
-3. Open `examples/hello.marko`. You should see:
+3. Open `examples/src/routes/+page.marko`. You should see:
    - Syntax highlighting across the file's mix of `<let>`/`<const>`,
      `<if>`/`<else-if>`/`<else>`, `<for>`, attribute tags, a dynamic tag,
      concise-mode text, and the `<style>` block.
@@ -41,12 +41,13 @@ editor, so verification is manual:
      actually attached and type-checked, not just that the grammar
      highlighted.
 
-`examples/tsconfig.json` exists so the language server picks up a project
-config for that directory — without one it treats `.marko` files as plain JS
-and skips type diagnostics entirely (no `abobora` squiggle). If you change
-anything touching LSP startup or the TypeScript lib-copying step
-(`src/lib.rs`), rerun this smoke test — it's the only thing that exercises
-that path end-to-end.
+`examples/` is a standalone `@marko/run` app (its own `package.json`,
+`tsconfig.json`, `bun.lock`) so the language server picks up a real project
+config — without one it treats `.marko` files as plain JS and skips type
+diagnostics entirely (no `abobora` squiggle). Run `bun install` inside
+`examples/` before opening it in Zed. If you change anything touching LSP
+startup or the TypeScript lib-copying step (`src/lib.rs`), rerun this smoke
+test — it's the only thing that exercises that path end-to-end.
 
 ## Commit conventions
 

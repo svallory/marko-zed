@@ -22,7 +22,8 @@ build and verify against it before claiming the extension works.
   (`cargo build --target wasm32-wasip2` passes).
 - No `zed` CLI dev-extension smoke test has been run in CI/agent contexts —
   only `cargo build` is verified automatically. A human with the Zed app
-  should do "Install Dev Extension" + open `examples/hello.marko` to confirm
+  should do "Install Dev Extension" + open `examples/src/routes/+page.marko`
+  (after `bun install` inside `examples/`) to confirm
   highlighting/LSP end-to-end.
 
 ## Language server
