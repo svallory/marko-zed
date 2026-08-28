@@ -1,23 +1,53 @@
-// Minimal Marko component to smoke-test highlighting and the LSP.
+// Marko 6 smoke-test component: exercises highlighting + LSP diagnostics.
 export interface Input {
   name: string;
+  items?: string[];
 }
 
-class {
-  onCreate(input: Input) {
-    this.name = input.name;
-  }
-}
+static const MAX_ITEMS = 5;
 
-static function shout(text: string) {
+// Deliberate LSP smoke test: `abobora` is not a real type, so the Marko
+// language server should report a diagnostic on the next line. Leave this
+// broken on purpose — it proves type-checking is wired up end to end.
+static function shout(text: abobora) {
   return text.toUpperCase();
 }
 
+-- Concise-mode header, before the file switches to HTML mode below.
+p.tagline -- rendered ${new Date().getFullYear()}
+
+<let/count = 0>
+<const/greeting = `Hello, ${shout(input.name)}!`>
+
 <div.greeting>
-  <h1>Hello, ${shout(input.name)}!</h1>
-  <!-- Attribute tag: passes an <icon-star> tag as the "star" attribute
-       (the value here) to the parent, per Marko's attribute-tags feature. -->
-  <@icon-star id="hi" />
+  <h1>${greeting}</h1>
+
+  <if=input.items?.length>
+    <ul>
+      <for|item, i| of=input.items.slice(0, MAX_ITEMS)>
+        <li>${i + 1}. ${item}</li>
+      </for>
+    </ul>
+  </if>
+  <else if=(count > 0)>
+    <p>Cleared ${count} item(s).</p>
+  </else>
+  <else>
+    <p>No items yet.</p>
+  </else>
+
+  <button onClick() { count++ }>Bump count (${count})</button>
+
+  <!-- Dynamic tag: renders as <span> or <strong> depending on state. -->
+  <${count > 3 ? "strong" : "span"}>Count is ${count}</>
+
+  <!-- Attribute tag: only meaningful as a child of a custom tag, since it
+       becomes a property on that tag's `input` — `fancy-card` here is a
+       hypothetical custom tag (not implemented in this repo), just to show
+       the syntax somewhere it would actually compile against a real tag. -->
+  <fancy-card title="Card">
+    <@icon-star id="hi" />
+  </fancy-card>
 </div>
 
 <style>
