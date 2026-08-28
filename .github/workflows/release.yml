@@ -1,0 +1,343 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag to release (e.g. v0.2.0)"
+        required: true
+        type: string
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+
+      - name: Resolve tag
+        id: tag
+        env:
+          INPUT_TAG: ${{ inputs.tag }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          tag="${INPUT_TAG:-$REF_NAME}"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+      - name: Verify extension.toml version matches tag
+        env:
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          tag="$TAG"
+          expected="${tag#v}"
+          actual="$(grep -m1 '^version' extension.toml | sed -E 's/version *= *"([^"]+)"/\1/')"
+          if [ "$actual" != "$expected" ]; then
+            echo "::error::extension.toml version ($actual) does not match tag $tag (expected $expected)"
+            exit 1
+          fi
+          echo "Verified extension.toml version $actual matches tag $tag"
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-wasip2
+          components: rustfmt, clippy
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          key: wasm32-wasip2
+
+      - name: cargo fmt --check
+        run: cargo fmt --check
+
+      - name: cargo clippy
+        run: cargo clippy --all-targets --target wasm32-wasip2 -- -D warnings
+
+      - name: cargo build
+        run: cargo build --target wasm32-wasip2
+
+  github-release:
+    needs: verify
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+
+      - name: Resolve tag
+        id: tag
+        env:
+          INPUT_TAG: ${{ inputs.tag }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          tag="${INPUT_TAG:-$REF_NAME}"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+      - name: Check for an existing release
+        id: existing
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Extract changelog section
+        id: changelog
+        if: steps.existing.outputs.exists == 'false'
+        env:
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          tag="$TAG"
+          version="${tag#v}"
+
+          # Extract the section for this version from CHANGELOG.md:
+          # from a line starting with "## [<version>]" up to (but not
+          # including) the next "## [" heading or a Markdown reference-link
+          # definition line (e.g. "[Unreleased]: https://...", which
+          # keepachangelog.com puts at the end of the file, after the last
+          # section).
+          section="$(awk -v ver="$version" '
+            BEGIN { found=0 }
+            /^## \[/ {
+              if (found) exit
+              if ($0 ~ "^## \\[" ver "\\]") { found=1; next }
+              next
+            }
+            found && /^\[[^]]+\]:/ { exit }
+            found { print }
+          ' CHANGELOG.md)"
+
+          # Trim leading/trailing blank lines.
+          section="$(printf '%s\n' "$section" | sed -e '/./,$!d' -e ':a' -e '/^\n*$/{$d;N;ba' -e '}')"
+
+          if [ -z "$section" ]; then
+            echo "::error::No CHANGELOG.md section found for version $version (expected a '## [$version]' heading)"
+            exit 1
+          fi
+
+          {
+            echo "body<<CHANGELOG_EOF"
+            echo "$section"
+            echo "CHANGELOG_EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub Release
+        if: steps.existing.outputs.exists == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.tag.outputs.tag }}
+          NOTES: ${{ steps.changelog.outputs.body }}
+        run: |
+          gh release create "$TAG" \
+            --title "$TAG" \
+            --notes "$NOTES"
+
+      - name: Skip (release already exists)
+        if: steps.existing.outputs.exists == 'true'
+        env:
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: echo "A release already exists for tag ${TAG}; skipping."
+
+  registry-pr:
+    needs: verify
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.EXTENSIONS_PAT }}
+    steps:
+      - name: Resolve tag
+        id: tag
+        env:
+          INPUT_TAG: ${{ inputs.tag }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          tag="${INPUT_TAG:-$REF_NAME}"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "version=${tag#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Check for an existing open PR
+        id: existing
+        env:
+          VERSION: ${{ steps.tag.outputs.version }}
+        run: |
+          branch="marko-v${VERSION}"
+          count="$(gh pr list \
+            --repo zed-industries/extensions \
+            --head "svallory:${branch}" \
+            --state open \
+            --json number \
+            --jq 'length')"
+          echo "branch=$branch" >> "$GITHUB_OUTPUT"
+          if [ "$count" -gt 0 ]; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Checkout fork
+        if: steps.existing.outputs.exists == 'false'
+        uses: actions/checkout@v4
+        with:
+          repository: svallory/extensions
+          token: ${{ secrets.EXTENSIONS_PAT }}
+          fetch-depth: 0
+          submodules: false
+
+      - name: Configure git identity
+        if: steps.existing.outputs.exists == 'false'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Sync fork with upstream
+        if: steps.existing.outputs.exists == 'false'
+        run: gh repo sync svallory/extensions --source zed-industries/extensions
+
+      - name: Pull synced main locally
+        if: steps.existing.outputs.exists == 'false'
+        run: git pull origin main
+
+      - name: Create release branch
+        if: steps.existing.outputs.exists == 'false'
+        env:
+          BRANCH: ${{ steps.existing.outputs.branch }}
+        run: git checkout -b "$BRANCH"
+
+      - name: Set up pnpm
+        if: steps.existing.outputs.exists == 'false'
+        uses: pnpm/setup@v4
+        with:
+          version: 11
+
+      - name: Set up Node.js
+        if: steps.existing.outputs.exists == 'false'
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24.20.0"
+          cache: pnpm
+
+      - name: Install dependencies
+        if: steps.existing.outputs.exists == 'false'
+        run: pnpm install --frozen-lockfile
+
+      - name: Add or update marko submodule
+        if: steps.existing.outputs.exists == 'false'
+        env:
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          tag="$TAG"
+
+          if git config -f .gitmodules --get submodule.extensions/marko.url > /dev/null 2>&1; then
+            # Submodule is already registered but wasn't checked out
+            # (checkout ran with submodules: false); initialize it.
+            git submodule update --init extensions/marko
+          else
+            git submodule add https://github.com/svallory/marko-zed.git extensions/marko
+          fi
+
+          git -C extensions/marko fetch --tags origin
+          git -C extensions/marko checkout "$tag"
+
+      - name: Update extensions.toml
+        if: steps.existing.outputs.exists == 'false'
+        env:
+          VERSION: ${{ steps.tag.outputs.version }}
+        run: |
+          node - "$VERSION" <<'NODE_EOF'
+          const fs = require("node:fs");
+          const version = process.argv[2];
+          const path = "extensions.toml";
+          const lines = fs.readFileSync(path, "utf8").split("\n");
+
+          const headerIdx = lines.findIndex((l) => l.trim() === "[marko]");
+
+          if (headerIdx === -1) {
+            const entry = [
+              "[marko]",
+              'submodule = "extensions/marko"',
+              `version = "${version}"`,
+              "",
+            ];
+            // Insert alphabetically among top-level "[name]" headers.
+            let insertAt = lines.length;
+            for (let i = 0; i < lines.length; i++) {
+              const m = lines[i].match(/^\[([^.\]]+)\]$/);
+              if (m && m[1] > "marko") {
+                insertAt = i;
+                break;
+              }
+            }
+            lines.splice(insertAt, 0, ...entry);
+          } else {
+            for (let i = headerIdx + 1; i < lines.length; i++) {
+              if (/^\[/.test(lines[i])) break;
+              if (/^version\s*=/.test(lines[i])) {
+                lines[i] = `version = "${version}"`;
+                break;
+              }
+            }
+          }
+
+          fs.writeFileSync(path, lines.join("\n"));
+          NODE_EOF
+
+      - name: Sort extensions.toml and .gitmodules
+        if: steps.existing.outputs.exists == 'false'
+        run: pnpm sort-extensions
+
+      - name: Commit changes
+        if: steps.existing.outputs.exists == 'false'
+        env:
+          VERSION: ${{ steps.tag.outputs.version }}
+        run: |
+          git add extensions.toml .gitmodules extensions/marko
+          git commit -m "Update marko to v${VERSION}"
+
+      - name: Push branch to fork
+        if: steps.existing.outputs.exists == 'false'
+        env:
+          BRANCH: ${{ steps.existing.outputs.branch }}
+        # --force-with-lease is intentional: the "existing PR" check above only
+        # matches OPEN PRs, so a closed PR from a failed attempt can leave a
+        # stale branch of the same name on the fork. Force-with-lease overwrites
+        # it safely on retry instead of failing on a non-fast-forward push.
+        run: git push origin "$BRANCH" --force-with-lease
+
+      - name: Open pull request
+        if: steps.existing.outputs.exists == 'false'
+        env:
+          VERSION: ${{ steps.tag.outputs.version }}
+          TAG: ${{ steps.tag.outputs.tag }}
+          BRANCH: ${{ steps.existing.outputs.branch }}
+        run: |
+          body="Release notes:
+
+          https://github.com/svallory/marko-zed/releases/tag/${TAG}
+
+          Marko is a Zed extension adding Tree-sitter syntax highlighting and LSP support (via \`@marko/language-server\`) for the [Marko](https://markojs.com/) templating language."
+
+          gh pr create \
+            --repo zed-industries/extensions \
+            --head "svallory:${BRANCH}" \
+            --base main \
+            --title "Update marko to v${VERSION}" \
+            --body "$body"
+
+      - name: Skip (PR already open)
+        if: steps.existing.outputs.exists == 'true'
+        env:
+          BRANCH: ${{ steps.existing.outputs.branch }}
+        run: echo "An open PR already exists for branch ${BRANCH}; skipping."

@@ -62,6 +62,89 @@ Common types: `feat`, `fix`, `docs`, `chore`, `ci`, `refactor`.
 4. Open a PR against `main` using the PR template. Link any related issue.
 5. CI must pass before merge.
 
+## Releasing
+
+Releases are automated by `.github/workflows/release.yml`, triggered by
+pushing a `vX.Y.Z` tag (or via `workflow_dispatch` with a `tag` input, for
+re-running a release). The procedure:
+
+1. Bump the `version` field in `extension.toml` (e.g. `0.1.0` → `0.2.0`).
+2. In `CHANGELOG.md`, move the contents of `## [Unreleased]` into a new
+   dated section for the release, e.g.:
+
+   ```markdown
+   ## [Unreleased]
+
+   ## [0.2.0] - 2026-09-01
+
+   ### Added
+
+   - ...(moved from Unreleased)
+   ```
+
+   Leave an empty `## [Unreleased]` section at the top for future changes.
+3. Commit these changes (e.g. `chore(release): v0.2.0`).
+4. Tag the commit and push the tag:
+
+   ```bash
+   git tag v0.2.0
+   git push origin v0.2.0
+   ```
+
+Pushing the tag triggers three CI jobs:
+
+- **verify** — confirms `extension.toml`'s version matches the tag, then
+  runs `cargo fmt --check`, `cargo clippy`, and `cargo build` against
+  `wasm32-wasip2`.
+- **github-release** — creates a GitHub Release for the tag, using the
+  matching `CHANGELOG.md` section as the release notes.
+- **registry-pr** — opens (or reuses, if one is already open) a pull
+  request against [`zed-industries/extensions`](https://github.com/zed-industries/extensions)
+  updating the `marko` submodule and `extensions.toml` entry to the new
+  version.
+
+If the workflow fails partway, just re-run it via `workflow_dispatch` (with
+the same tag as input) — completed steps (release already created, PR
+already open) are detected and skipped, so re-running only retries what's
+actually missing.
+
+### One-time setup: `EXTENSIONS_PAT` secret
+
+The `registry-pr` job pushes a branch to the
+[`svallory/extensions`](https://github.com/svallory/extensions) fork and
+opens a pull request against the public upstream
+`zed-industries/extensions` repository. It uses a dedicated
+`EXTENSIONS_PAT` secret instead of the default `GITHUB_TOKEN`, because the
+default token is scoped to this repository only and cannot push to, or
+open PRs against, a different repository.
+
+**Token type:** a **classic** Personal Access Token. Fine-grained PATs
+currently cannot open a pull request from a fork against an upstream
+repository owned by someone else (a known GitHub platform gap), so a
+fine-grained token will not work for this job.
+
+**Scope required:** `public_repo` — this grants read/write access to code,
+commit statuses, and pull requests on public repositories, which is
+exactly what's needed to push a branch to the public `svallory/extensions`
+fork and open a PR against the public `zed-industries/extensions` repo.
+The broader `repo` scope (which also grants private-repo access) is not
+needed since both repositories involved are public.
+
+**To create the token:**
+
+1. Go to GitHub → Settings → Developer settings → Personal access tokens →
+   [Tokens (classic)](https://github.com/settings/tokens).
+2. Generate a new token (classic), select the `public_repo` scope, and set
+   an expiration.
+3. Copy the token value (shown once).
+
+**To add it as a repository secret:**
+
+1. In the `marko-zed` repository on GitHub, go to **Settings** → **Secrets
+   and variables** → **Actions**.
+2. Under the **Secrets** tab, click **New repository secret**.
+3. Name it `EXTENSIONS_PAT`, paste the token value, and save.
+
 ## Reporting bugs / requesting features
 
 Use the issue templates in `.github/ISSUE_TEMPLATE/`. For bugs, include your
